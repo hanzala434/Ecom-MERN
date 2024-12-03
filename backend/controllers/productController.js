@@ -48,8 +48,7 @@ const getProducts = asyncHandler(async (req, res) => {
 
 // Get a single product by ID
 const getProductById = asyncHandler(async (req, res) => {
-    const product = await Product.findOne({_id: req.params.productId, 
-                                          category: req.params.id})
+    const product = await Product.findOne({_id: req.params.id})
 
     if (product) {
         res.status(200).json(product);

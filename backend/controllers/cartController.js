@@ -3,9 +3,9 @@ const Products = require("../models/Products");
 
 const addToCart = async (req, res) => {
   try {
-    const { userId, productId, quantity } = req.body;
+    const { userId, name, color, size, productId, quantity } = req.body;
 
-    if (!userId || !productId || quantity <= 0) {
+    if (!userId || !productId || !name || !color || !size || quantity <= 0) {
       return res.status(400).json({
         success: false,
         message: "Invalid data provided!",
@@ -28,11 +28,14 @@ const addToCart = async (req, res) => {
     }
 
     const findCurrentProductIndex = cart.items.findIndex(
-      (item) => item.productId.toString() === productId
+      (item) =>
+        item.productId.toString() === productId &&
+        item.color === color &&
+        item.size === size
     );
 
     if (findCurrentProductIndex === -1) {
-      cart.items.push({ productId, quantity });
+      cart.items.push({ productId, name, color, size, quantity });
     } else {
       cart.items[findCurrentProductIndex].quantity += quantity;
     }
@@ -58,13 +61,14 @@ const fetchCartItems = async (req, res) => {
     if (!userId) {
       return res.status(400).json({
         success: false,
-        message: "User id is manadatory!",
+        message: "User id is mandatory!",
       });
     }
 
+    // Fetch the cart and populate the product details
     const cart = await Cart.findOne({ userId }).populate({
       path: "items.productId",
-      select: "images name price",
+      select: "images name price", // Ensure these fields exist in the Product model
     });
 
     if (!cart) {
@@ -74,44 +78,49 @@ const fetchCartItems = async (req, res) => {
       });
     }
 
-    const validItems = cart.items.filter(
-      (productItem) => productItem.productId
-    );
+    // Validate items to ensure only items with a valid productId are retained
+    const validItems = cart.items.filter((item) => item.productId);
 
     if (validItems.length < cart.items.length) {
       cart.items = validItems;
-      await cart.save();
+      await cart.save(); // Save the updated cart
     }
 
+    // Map the cart items to include necessary fields
     const populateCartItems = validItems.map((item) => ({
-      productId: item.productId._id,
-      image: item.productId.images,
-      name: item.productId.name,
-      price: item.productId.price,
-      quantity: item.quantity,
+      _id: item._id, // Include the item ID from the Cart schema
+      productId: item.productId._id, // Product ID from the populated Product model
+      name: item.productId.name, // Product name from the Product model
+      color: item.color, // Color from the Cart schema
+      size: item.size, // Size from the Cart schema
+      image: item.productId.images, // Images from the Product model
+      price: item.productId.price, // Price from the Product model
+      quantity: item.quantity, // Quantity from the Cart schema
     }));
 
+    // Respond with the updated cart data
     res.status(200).json({
       success: true,
       data: {
         ...cart._doc,
-        items: populateCartItems,
+        items: populateCartItems, // Replace items with the populated cart items
       },
     });
   } catch (error) {
-    console.log(error);
+    console.error(error);
     res.status(500).json({
       success: false,
-      message: "Error",
+      message: "Error fetching cart items.",
     });
   }
 };
 
+
 const updateCartItemQty = async (req, res) => {
   try {
-    const { userId, productId, quantity } = req.body;
+    const { userId, productId, color, size, quantity } = req.body;
 
-    if (!userId || !productId || quantity <= 0) {
+    if (!userId || !productId || !color || !size || quantity <= 0) {
       return res.status(400).json({
         success: false,
         message: "Invalid data provided!",
@@ -127,13 +136,16 @@ const updateCartItemQty = async (req, res) => {
     }
 
     const findCurrentProductIndex = cart.items.findIndex(
-      (item) => item.productId.toString() === productId
+      (item) =>
+        item.productId.toString() === productId &&
+        item.color === color &&
+        item.size === size
     );
 
     if (findCurrentProductIndex === -1) {
       return res.status(404).json({
         success: false,
-        message: "Cart item not present !",
+        message: "Cart item not present!",
       });
     }
 
@@ -142,14 +154,16 @@ const updateCartItemQty = async (req, res) => {
 
     await cart.populate({
       path: "items.productId",
-      select: "image name price",
+      select: "images name price",
     });
 
     const populateCartItems = cart.items.map((item) => ({
-      productId: item.productId ? item.productId._id : null,
-      image: item.productId ? item.productId.images : null,
-      name: item.productId ? item.productId.name : "Product not found",
-      price: item.productId ? item.productId.price : null,
+      productId: item.productId._id,
+      name: item.name,
+      color: item.color,
+      size: item.size,
+      image: item.productId.images,
+      price: item.productId.price,
       quantity: item.quantity,
     }));
 
@@ -171,7 +185,8 @@ const updateCartItemQty = async (req, res) => {
 
 const deleteCartItem = async (req, res) => {
   try {
-    const { userId, productId } = req.params;
+    const { userId, productId} = req.params;
+
     if (!userId || !productId) {
       return res.status(400).json({
         success: false,
@@ -181,7 +196,7 @@ const deleteCartItem = async (req, res) => {
 
     const cart = await Cart.findOne({ userId }).populate({
       path: "items.productId",
-      select: "image name price",
+      select: "images name price",
     });
 
     if (!cart) {
@@ -192,21 +207,24 @@ const deleteCartItem = async (req, res) => {
     }
 
     cart.items = cart.items.filter(
-      (item) => item.productId._id.toString() !== productId
+      (item) =>
+        item._id.toString() !== productId 
     );
 
     await cart.save();
 
     await cart.populate({
       path: "items.productId",
-      select: "image name price",
+      select: "images name price",
     });
 
     const populateCartItems = cart.items.map((item) => ({
-      productId: item.productId ? item.productId._id : null,
-      image: item.productId ? item.productId.images : null,
-      name: item.productId ? item.productId.name : "Product not found",
-      price: item.productId ? item.productId.price : null,
+      productId: item.productId._id,
+      name: item.name,
+      color: item.productId.color,
+      size: item.productId.size,
+      image: item.productId.images,
+      price: item.productId.price,
       quantity: item.quantity,
     }));
 

@@ -19,6 +19,10 @@ app.use('/api/users',require('./Routes/authRoutes'));
 app.use('/api/product',require('./Routes/productRoutes'));
 app.use('/api/category',require('./Routes/categoryRoutes'));
 app.use('/api/cart',require('./Routes/cartRoutes'));
+app.use('/api/address',require('./Routes/addressRoutes'));
+app.use('/api/order',require('./Routes/orderRoutes'));
+
+
 
 
 
