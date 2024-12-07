@@ -48,6 +48,10 @@ const productSchema = new mongoose.Schema({
         type: String, // Detailed information about the product
         required: true,
     },
+    popular: {
+        type: Boolean, // Indicates if the product is popular
+        default: false, // Default value is false
+    },
 }, { timestamps: true });
 
 module.exports = mongoose.model("Products", productSchema);

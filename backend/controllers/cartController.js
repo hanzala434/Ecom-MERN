@@ -31,7 +31,8 @@ const addToCart = async (req, res) => {
       (item) =>
         item.productId.toString() === productId &&
         item.color === color &&
-        item.size === size
+        item.size === size &&
+        item.name
     );
 
     if (findCurrentProductIndex === -1) {
